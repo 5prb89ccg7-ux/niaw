@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><title>BOXING LOG</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{color-scheme:dark;--bg:#0b0b0c;--c1:#161618;--c2:#222226;--tx:#f4f4f5;--mu:#8d8d95;--red:#e10600;--ok:#2ecc71;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+#app{max-width:560px;margin:0 auto;padding:14px}
+h1{font-size:13px;letter-spacing:.3em;color:var(--red);margin:4px 0 12px;font-weight:900}
+h3{margin:0 0 10px;font-size:15px}
+.card{background:var(--c1);border:1px solid var(--c2);border-radius:16px;padding:16px;margin-bottom:12px}
+.big{font-size:84px;font-weight:900;text-align:center;font-variant-numeric:tabular-nums;line-height:1.05;letter-spacing:-.02em}
+.n{font-size:34px;font-weight:900;font-variant-numeric:tabular-nums}
+.mu{color:var(--mu);font-size:12px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:inherit;color:var(--tx);background:var(--c2);border:0;border-radius:14px;padding:16px 10px;font-weight:800;font-size:17px;cursor:pointer}
+button:active{transform:scale(.97)}
+.red{background:var(--red)}.ghost{background:transparent;border:1px solid var(--c2);color:var(--mu)}
+.sm{padding:8px 12px;font-size:13px;border-radius:10px;flex:0 0 auto}
+.xl{padding:22px;font-size:22px;width:100%;letter-spacing:.05em}
+.bar{height:10px;background:var(--c2);border-radius:6px;overflow:hidden;margin:10px 0}
+.bar i{display:block;height:100%;background:var(--red);width:0;transition:width .3s}
+.ph{text-align:center;font-weight:900;letter-spacing:.3em;font-size:22px;padding:8px;border-radius:12px;margin-bottom:8px}
+.ph.work{background:var(--red)}.ph.rest{background:#1d6b3a}.ph.done{background:var(--c2)}
+.rd{text-align:center;font-weight:800;color:var(--mu);margin:6px 0;font-size:20px;letter-spacing:.1em}
+.stp{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--c2)}
+.stp:last-of-type{border:0}
+.stp b{font-size:22px;min-width:84px;text-align:center;font-variant-numeric:tabular-nums}
+.stp button{width:52px;padding:10px}
+input[type=number]{width:100%;background:var(--bg);border:2px solid var(--c2);color:var(--tx);border-radius:14px;font-size:44px;font-weight:900;text-align:center;padding:8px;margin-bottom:8px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#101012;border-top:1px solid var(--c2);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;border-radius:0;background:none;color:var(--mu);font-size:11px;padding:10px 0 12px;display:flex;flex-direction:column;gap:2px;align-items:center}
+nav button span{font-size:22px}nav button.on{color:var(--red)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal div{padding:10px 0;border-radius:10px;font-weight:700;position:relative;cursor:pointer;font-size:15px}
+.cal .h{color:var(--mu);font-size:12px;cursor:default;padding:4px 0}
+.cal .t{outline:2px solid var(--mu)}.cal .s{background:var(--red)}
+.cal .d::after{content:"";position:absolute;left:50%;bottom:3px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--red)}
+.cal .s.d::after{background:#fff}
+.li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--c2);font-size:15px}
+.li span{flex:1}
+.tag{color:var(--red);font-weight:900}
+</style></head><body>
+<div id="app"></div>
+<nav id="nav"></nav>
+<script>
+const $=id=>document.getElementById(id),p2=n=>String(n).padStart(2,'0');
+const dk=d=>{d=d||new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
+const mmss=s=>p2(Math.floor(s/60))+':'+p2(s%60);
+const mins=s=>Math.round(s/60)+'분';
+const sum=a=>a.reduce((x,y)=>x+y,0);
+function load(){let d={};try{d=JSON.parse(localStorage.getItem('bx1'))||{}}catch(e){}
+ return{set:Object.assign({rounds:1,work:180,rest:60,goal:10},d.set),ses:d.ses||[],pu:d.pu||{}}}
+function sv(){try{localStorage.setItem('bx1',JSON.stringify(D))}catch(e){}}
+function loadT(){try{return JSON.parse(localStorage.getItem('bx_t'))||{ph:'idle'}}catch(e){return{ph:'idle'}}}
+function saveT(){try{localStorage.setItem('bx_t',JSON.stringify(T))}catch(e){}}
+let D=load(),T=loadT(),tab='home',P=0,cm=new Date(),sel=dk(),AC=null;
+const act=()=>T.ph=='work'||T.ph=='rest';
+
+/* ---------- 통계 ---------- */
+function ra(a,b){let r=0,s=0,pu=0;D.ses.forEach(x=>{if(x.date>=a&&x.date<=b){r+=x.rounds;s+=x.secs}});
+ for(const k in D.pu)if(k>=a&&k<=b)pu+=sum(D.pu[k]);return{r,s,pu}}
+const agg=k=>ra(k,k);
+
+/* ---------- 소리/진동 ---------- */
+function beep(kind){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume();
+ const seq=kind=='done'?[880,1100,1320,1760]:kind=='rest'?[660,660]:[990,990,1320];
+ seq.forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=f;o.type='square';
+  const t=AC.currentTime+i*.22;g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.18);
+  o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.2)})}catch(e){}
+ try{navigator.vibrate&&navigator.vibrate(kind=='done'?[300,100,300,100,500]:[250,100,250])}catch(e){}}
+async function wake(){try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}}
+
+/* ---------- 타이머 ---------- */
+function start(){const s=D.set,n=Date.now();
+ T={ph:'work',r:1,N:s.rounds,W:s.work,R:s.rest,dur:s.work*1000,end:n+s.work*1000,paused:false,left:0,secs:0,cr:0,t0:n,saved:false};
+ beep('work');wake();saveT();render()}
+function saveSes(){if(T.saved)return;T.saved=true;
+ if(T.cr>0||T.secs>=30){D.ses.push({id:Date.now()+Math.random().toString(36).slice(2,6),date:dk(new Date(T.t0)),ts:T.t0,rounds:T.cr,secs:Math.round(T.secs)});sv()}}
+function tick(){if(!act()||T.paused)return;
+ const now=Date.now();let ch=false;
+ while(now>=T.end&&act()){T.secs+=T.dur/1000;ch=true;
+  if(T.ph=='work'){T.cr++;
+   if(T.r>=T.N){T.ph='done';saveSes();break}
+   T.ph='rest';T.dur=T.R*1000}
+  else{T.r++;T.ph='work';T.dur=T.W*1000}
+  T.end+=T.dur}
+ if(ch){beep(T.ph=='done'?'done':T.ph);saveT();render();return}
+ if(tab=='timer')upd()}
+const left=()=>T.paused?T.left:Math.max(0,T.end-Date.now());
+function upd(){if(!$('tm')||!act())return;const l=left();
+ $('tm').textContent=mmss(Math.ceil(l/1000));$('pb').style.width=(100-l/T.dur*100)+'%'}
+function pause(){T.left=Math.max(0,T.end-Date.now());T.paused=true;saveT();render()}
+function resume(){T.end=Date.now()+T.left;T.paused=false;saveT();wake();render()}
+function stop(){if(!confirm('운동을 종료할까요?\n완료한 라운드만 기록됩니다.'))return;
+ T.secs+=(T.dur-left())/1000;T.stopped=true;T.ph='done';saveSes();saveT();render()}
+function reset(){if(!confirm('처음부터 다시 시작할까요?\n지금까지의 진행은 기록되지 않습니다.'))return;start()}
+function ack(){T={ph:'idle'};saveT();render()}
+function stp(k,d){const lim={rounds:[1,20,1],work:[10,600,10],rest:[5,300,5],goal:[1,50,1]}[k];
+ D.set[k]=Math.min(lim[1],Math.max(lim[0],D.set[k]+d*lim[2]));sv();render()}
+
+/* ---------- 팔굽혀펴기 ---------- */
+function addP(n){P+=n;$('pcur').value=P}
+function addSet(){if(P<=0)return;const k=dk();(D.pu[k]=D.pu[k]||[]).push(P);P=0;sv();render()}
+function editSet(k,i){const v=prompt('개수 수정',D.pu[k][i]);if(v===null)return;const n=parseInt(v);
+ if(n>0){D.pu[k][i]=n;sv();render()}}
+function delSet(k,i){if(!confirm('이 세트를 삭제할까요?'))return;D.pu[k].splice(i,1);if(!D.pu[k].length)delete D.pu[k];sv();render()}
+function delSes(id){if(!confirm('이 운동 기록을 삭제할까요?'))return;D.ses=D.ses.filter(x=>x.id!=id);sv();render()}
+function setRows(k){return(D.pu[k]||[]).map((n,i)=>`<div class="li"><span>${i+1}세트: <b>${n}개</b></span><button class="sm" onclick="editSet('${k}',${i})">수정</button><button class="sm ghost" onclick="delSet('${k}',${i})">삭제</button></div>`).join('')}
+function puW(){const k=dk(),t=sum(D.pu[k]||[]);
+ return`<div class="card"><h3>💪 팔굽혀펴기 <span class="mu">오늘 총합 <b class="tag" style="font-size:18px">${t}개</b></span></h3>
+ <input id="pcur" type="number" inputmode="numeric" min="0" value="${P}" oninput="P=Math.max(0,parseInt(this.value)||0)">
+ <div class="row" style="margin-bottom:8px"><button onclick="addP(1)">+1</button><button onclick="addP(5)">+5</button><button onclick="addP(10)">+10</button><button class="ghost" onclick="P=0;$('pcur').value=0">C</button></div>
+ <button class="red xl" style="padding:16px;font-size:18px" onclick="addSet()">세트 저장</button>${setRows(k)}</div>`}
+
+/* ---------- 상세 ---------- */
+function dayDetail(k){const a=agg(k),d=new Date(k+'T00:00'),ss=D.ses.filter(x=>x.date==k).sort((x,y)=>x.ts-y.ts);
+ if(!ss.length&&!D.pu[k])return`<div class="card"><h3>${d.getMonth()+1}월 ${d.getDate()}일</h3><div class="mu">운동 기록이 없습니다.</div></div>`;
+ return`<div class="card"><h3>${d.getMonth()+1}월 ${d.getDate()}일</h3>
+ <div>줄넘기 <b class="tag">${a.r}라운드</b> · 팔굽혀펴기 <b class="tag">${a.pu}개</b> · 운동 시간 <b class="tag">${mins(a.s)}</b></div>
+ ${ss.map(x=>{const t=new Date(x.ts);return`<div class="li"><span>${p2(t.getHours())}:${p2(t.getMinutes())} · 줄넘기 ${x.rounds}R · ${mins(x.secs)}</span><button class="sm ghost" onclick="delSes('${x.id}')">삭제</button></div>`}).join('')}
+ ${setRows(k)}</div>`}
+
+/* ---------- 화면 ---------- */
+function vHome(){const k=dk(),a=agg(k),g=D.set.goal,pc=Math.min(100,Math.round(a.r/g*100));
+ return`<h1>🥊 BOXING LOG</h1>
+ <div class="card"><div class="mu">오늘의 줄넘기</div><div class="n" style="font-size:56px">${a.r} <span class="mu" style="font-size:24px">/ ${g} 라운드</span></div>
+ <div class="bar"><i style="width:${pc}%"></i></div><div class="mu">달성률 ${pc}%</div></div>
+ <div class="grid" style="margin-bottom:12px"><div class="card" style="margin:0"><div class="mu">팔굽혀펴기</div><div class="n">${a.pu}<span class="mu" style="font-size:16px">개</span></div></div>
+ <div class="card" style="margin:0"><div class="mu">총 운동 시간</div><div class="n">${mins(a.s)}</div></div></div>
+ <button class="red xl" style="margin-bottom:12px" onclick="go('timer')">운동 시작</button>
+ <div class="row" style="margin-bottom:12px"><button onclick="go('cal')">📅 캘린더</button><button onclick="go('rec')">📊 운동 기록</button></div>${puW()}`}
+
+function vTimer(){const s=D.set;
+ if(T.ph=='done')return`<h1>RESULT</h1><div class="card" style="text-align:center"><div class="mu">${T.stopped?'중간 종료':'운동 완료! 🔥'}</div>
+ <div class="n" style="font-size:64px;margin:10px 0">${T.cr}<span class="mu" style="font-size:22px"> 라운드</span></div>
+ <div class="mu">총 운동 시간</div><div class="n">${mmss(Math.round(T.secs))}</div><div class="mu" style="margin-top:8px">완료한 라운드가 저장되었습니다.</div></div>
+ <button class="red xl" onclick="ack()">확인</button>`;
+ if(act()){const l=Math.ceil(left()/1000);
+  return`<h1>TIMER</h1><div class="ph ${T.ph}" id="ph">${T.paused?'일시정지':T.ph=='work'?'운동':'휴식'}</div>
+  <div class="rd">ROUND ${p2(T.r)} / ${p2(T.N)}</div><div class="big" id="tm">${mmss(l)}</div>
+  <div class="bar"><i id="pb" style="width:${100-left()/T.dur*100}%"></i></div>
+  <div class="row" style="margin:16px 0 10px">${T.paused?'<button class="red xl" onclick="resume()">재개</button>':'<button class="xl" onclick="pause()">일시정지</button>'}<button class="xl ghost" onclick="stop()">종료</button></div>
+  <button class="ghost" style="width:100%" onclick="reset()">↺ 처음부터 다시</button>`}
+ const st=(l,k,v)=>`<div class="stp"><span>${l}</span><div class="row" style="flex:0 0 auto;align-items:center"><button onclick="stp('${k}',-1)">−</button><b>${v}</b><button onclick="stp('${k}',1)">+</button></div></div>`;
+ return`<h1>TIMER</h1><div class="card"><h3>운동 설정</h3>${st('라운드','rounds',s.rounds+'R')}${st('운동 시간','work',mmss(s.work))}${st('휴식 시간','rest',mmss(s.rest))}${st('하루 목표 라운드','goal',s.goal+'R')}
+ <button class="ghost sm" style="margin-top:8px" onclick="D.set.rounds=1;D.set.work=180;D.set.rest=60;sv();render()">기본값 (3분 / 1분 / 1R)</button></div>
+ <div class="card" style="text-align:center"><div class="mu">설정 확인</div><div style="font-size:18px;font-weight:800;margin:6px 0">${s.rounds}라운드 × 운동 ${mmss(s.work)} + 휴식 ${mmss(s.rest)}</div>
+ <div class="mu">예상 시간 약 ${mins(s.rounds*s.work+(s.rounds-1)*s.rest)}</div></div>
+ <button class="red xl" onclick="start()">START</button>`}
+
+function vCal(){const y=cm.getFullYear(),m=cm.getMonth(),f=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate(),td=dk();
+ let h='일월화수목금토'.split('').map(x=>`<div class="h">${x}</div>`).join('')+'<div class="h"></div>'.repeat(f);
+ for(let d=1;d<=n;d++){const k=y+'-'+p2(m+1)+'-'+p2(d),a=agg(k);
+  h+=`<div class="${(a.r||a.pu?'d ':'')+(k==td?'t ':'')+(k==sel?'s':'')}" onclick="sel='${k}';render()">${d}</div>`}
+ return`<h1>CALENDAR</h1><div class="card"><div class="row" style="align-items:center;margin-bottom:10px">
+ <button class="sm" style="flex:0 0 52px" onclick="cm=new Date(${y},${m-1},1);render()">◀</button><div style="text-align:center;font-weight:900;font-size:18px">${y}년 ${m+1}월</div>
+ <button class="sm" style="flex:0 0 52px" onclick="cm=new Date(${y},${m+1},1);render()">▶</button></div><div class="cal">${h}</div>
+ <button class="ghost sm" style="margin-top:10px;width:100%" onclick="cm=new Date();sel=dk();render()">오늘로 이동</button></div>${dayDetail(sel)}`}
+
+function vRec(){const now=new Date(),k=dk(),mon=new Date(now);mon.setDate(now.getDate()-(now.getDay()+6)%7);
+ const sun=new Date(mon);sun.setDate(mon.getDate()+6),pre=now.getFullYear()+'-'+p2(now.getMonth()+1);
+ const w=ra(dk(mon),dk(sun)),mo=ra(pre+'-01',pre+'-31'),all=ra('0000','9999'),t=agg(k),g=D.set.goal;
+ let wd=0;for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);if(agg(dk(d)).r>=g)wd++}
+ const tile=(l,v)=>`<div class="card" style="margin:0"><div class="mu">${l}</div><div class="n" style="font-size:28px">${v}</div></div>`;
+ const keys=[...new Set([...D.ses.map(x=>x.date),...Object.keys(D.pu)])].sort().reverse().slice(0,30);
+ return`<h1>RECORDS</h1><div class="grid" style="margin-bottom:12px">
+ ${tile('오늘 달성률',Math.min(100,Math.round(t.r/g*100))+'%')}${tile('이번 주 목표 달성',wd+' / 7일')}
+ ${tile('이번 주 라운드',w.r+'R')}${tile('이번 달 라운드',mo.r+'R')}${tile('누적 라운드',all.r+'R')}${tile('총 운동 시간',mins(all.s))}
+ ${tile('이번 주 팔굽혀펴기',w.pu+'개')}${tile('이번 달 팔굽혀펴기',mo.pu+'개')}</div>${puW()}
+ <h3 style="margin:16px 4px 10px">날짜별 기록</h3>${keys.map(dayDetail).join('')||'<div class="mu">아직 기록이 없습니다.</div>'}`}
+
+const TABS=[['home','🏠','홈',vHome],['timer','⏱','타이머',vTimer],['cal','📅','캘린더',vCal],['rec','📊','기록',vRec]];
+function go(t){tab=t;render();scrollTo(0,0)}
+function render(){$('app').innerHTML=TABS.find(x=>x[0]==tab)[3]();
+ $('nav').innerHTML=TABS.map(x=>`<button class="${x[0]==tab?'on':''}" onclick="go('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join('')}
+setInterval(tick,250);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){tick();if(act())wake()}});
+if(act())tick();
+render();
+</script></body></html>
